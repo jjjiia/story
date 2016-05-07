@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	  <meta charset="UTF-8">
+	  
+	<title>Story</title>
+	<script src="static/d3.v3.min.js"></script>
+	<script src="static/jquery.min.js"></script>
+    <script src="static/queue.js"></script>	
+    <script src="static/sortable.js"></script>	
+	<script src="http://d3js.org/topojson.v1.min.js"></script>
+  
+	<link rel="stylesheet" type="text/css" href="styles/story.css"> </style>
+  
+</head>
+
+<body>
+<div id = "text">
+  <div id = "header">Diversity</br>&</br>Segregation</div>
+  <div id = "text-story">
+<p>Usu dicant postea eripuit ad, in eos quando efficiendi. Integre commune nam ea, has ne amet mentitum noluisse, etiam liber omnes sed ad. Mel ut aeterno signiferumque. Sanctus blandit sit ut. In qui soleat fuisset aliquando, pri cu viderer suavitate.
+</p>
+<p>Has posse rationibus no, usu quando deserunt sadipscing ad. Est ut hinc salutatus. Habeo essent assentior sed ut, vix in nostrum singulis sententiae. Usu consequuntur interpretaris eu, nec id justo eirmod persius. Solum graeci laboramus ne his, ei utroque ullamcorper duo. Te nisl nihil legimus eos. In sea aliquid probatus, no sit omnesque tacimates.
+</p>
+<p>Aeterno inciderint cu has, ne dicant maluisset nec, cibo omittantur vim in. Agam duis illud quo ea, cibo vidit iuvaret te has. Per at apeirian detraxit, vix in noluisse ponderum insolens. Et impetus omnesque delicata his, id vis paulo essent. Vim meis detracto cu, harum facilis admodum vix id, discere laboramus nec ad.
+</p>
+</div>
+<div id = "structure">architecture</div>
+<div id = "rank">ranking</div>
+</div>
+
+<div id = "viz">
+  <div id = "map"></div>
+</div>
+
+
+<script type="text/javascript" charset="utf-8">
+var root = "data/"
+//shapes
+var msas = root+"geo_cbsa.geojson"
+var tracts = root+"geo_tracts.geojson"
+
+//data on race
+var diversityScores = root+"msa_diversityscores.json"
+var msaData = root+"data_msa.json"
+var tractData = root+"data_tract.csv"
+
+//file to match between units
+var msaTractDictionary = root+"crossReference.json"
+
+//reformated topojson
+var msaTopo = root+"topo_msa.json"
+var tractTopo = root+"topo_tract.json"
+
+</script>
+	
+<script src="map.js"></script>
+	
+</body>
+</html>

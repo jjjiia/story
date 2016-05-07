@@ -1,0 +1,179 @@
+<html>
+<head>
+	<title>Dot density map</title>
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<script src="http://d3js.org/topojson.v1.min.js"></script>
+</head>
+<body>
+
+<script>
+
+var width = 2000,
+	height = 1200;
+
+// invisible map of polygons
+var polyCanvas = d3.select("body")
+	.append("canvas")
+	.attr("width",width)
+	.attr("height",height)
+	.style("display","none");
+
+// using this div to crop the map; it has messy edges
+var container = d3.select("body")
+	.append("div")
+	.style({
+		"position": "relative",
+		"width": (width) + "px",
+		"height": (height) + "px",
+//		"overflow": "hidden"
+	});
+
+// canvas for dot map
+var dotCanvas = container
+	.append("canvas")
+	.attr("width",width)
+	.attr("height",height)
+	.style({
+		"position": "absolute",
+		"top": "-100px",
+		"left": "-100px"
+	});
+
+//var projection = d3.geo.albers()
+//	.rotate([89.94,0])
+//	.center([0,35.06])
+//	.parallels([40,44])
+//	.scale(11200)
+//	.translate([width / 2, height / 2]);
+//
+var projection = d3.geo.mercator().scale(1200).center([-89.94,35.06]).translate([width / 2, height / 2]);
+
+var path = d3.geo.path().projection(projection);
+
+var polyContext = polyCanvas.node().getContext("2d"),
+	dotContext = dotCanvas.node().getContext("2d");
+
+var features;
+var colors = ["#CE4C65",
+"#F32C24",
+"#E09F86",
+"#DD4519",
+"#A47058",
+"#F73E78",
+"#A05437",
+"#DF205E",
+"#E6805E",
+"#BE2D4E",
+"#C8542C",
+"#D9717E",
+"#E7513E",
+"#9A5154",
+"#ED4054",
+"#C87363",
+"#C02F39",
+"#EE716E",
+"#AF3F30",
+"#BC5552"]
+d3.json( "output.json", function(error, blocks){
+	features = topojson.feature(blocks, blocks.objects["cbsa"]).features;
+  var featuresById = reformatFeaturesById(features)
+  var chicago = featuresById["16980"]
+  console.log(chicago)
+	// draw the polygons with a unique color for each
+	var i=features.length;
+	while(i--){
+		var r = parseInt(i / 256),
+			g = i % 256;
+		drawPolygon( features[i], polyContext, "rgb(" + r + "," + g + ",0)" );
+	};
+
+	// pixel data for the whole polygon map. we'll use color for point-in-polygon tests.
+	var imageData = polyContext.getImageData(0,0,width,height);
+
+	// now draw dots
+	i=features.length;
+	while(i--){
+
+//		var pop = features[i].properties.POP10;	// one dot = 2 people
+	  var pop = 2000
+  	if ( !pop ) continue;
+
+		var bounds = path.bounds(features[i]),
+			x0 = bounds[0][0],
+			y0 = bounds[0][1],
+			w = bounds[1][0] - x0,
+			h = bounds[1][1] - y0,
+			hits = 0,
+			count = 0,
+			limit = pop*10,	// limit tests just in case of infinite loops
+			x,
+			y,
+			r = parseInt(i / 256),
+			g = i % 256;
+
+		// test random points within feature bounding box
+		while( hits < pop-1 && count < limit ){	// we're done when we either have enough dots or have tried too many times
+			x = parseInt(x0 + Math.random()*w);
+			y = parseInt(y0 + Math.random()*h);
+
+			// use pixel color to determine if point is within polygon. draw the dot if so.
+			if ( testPixelColor(imageData,x,y,width,r,g) ){
+        var color = colors[parseInt(Math.random()*19)]
+        var colorrgb = hexToRgb(color)
+				drawPixel(x,y,colorrgb.r,colorrgb.g,colorrgb.b,255);	// #09c, vintage @indiemaps
+				hits++;
+			}
+			count ++;
+		}
+	}
+});
+function reformatFeaturesById(features){
+  var reformated = {}
+  for(var f in features){
+    var geoid = features[f]["properties"]["GEOID"]
+    reformated[geoid]=features[f]
+  }
+  return reformated
+}
+function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+function testPixelColor(imageData,x,y,w,r,g){
+	var index = (x + y * w) * 4;
+	return imageData.data[index + 0] == r && imageData.data[index + 1] == g;
+}
+
+function drawPolygon( feature, context, fill ){
+	var coordinates = feature.geometry.coordinates;
+	context.fillStyle = fill || "#000";
+	context.beginPath();
+	coordinates.forEach( function(ring){
+		ring.forEach( function(coord, i){
+			var projected = projection( coord );
+			if (i == 0) {
+                context.moveTo(projected[0], projected[1]);
+            } else {
+                context.lineTo(projected[0], projected[1]);
+            }
+		});
+	});
+	context.closePath();
+	context.fill();
+}
+
+// there are faster (or prettier) ways to draw lots of dots, but this works
+function drawPixel (x, y, r, g, b, a) {
+	dotContext.fillStyle = "rgba("+r+","+g+","+b+","+(a/255)+")";
+	dotContext.fillRect( x, y, 1, 1 );
+}
+
+</script>
+
+</body>
+</html>
