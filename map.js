@@ -151,7 +151,7 @@ function drawTracts(features,tractsData,color){
     	while(i--){
             var tract =features[i].properties.AFFGEOID
             //console.log(tractsData[tract])
-    		var pop = tractsData[tract]/10;	// one dot = 2 people
+    		var pop = tractsData[tract]/20;	// one dot = 2 people
     		if ( !pop ) continue;
 
     		var bounds = path.bounds(features[i]),
