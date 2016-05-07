@@ -12,11 +12,11 @@ $(function() {
 })
 var width = Math.max(660, window.innerWidth)
 var height = Math.max(400, window.innerHeight)
-
 var globals = {
     "center":[-88,42.3],
     "scale":12000
 }
+var races = ["white","hispanic","black","asian","other"]
 // invisible map of polygons
 var polyCanvas = d3.select("#map")
 	.append("canvas")
@@ -47,56 +47,61 @@ var dotCanvas = container
 	});
 var polyContext = polyCanvas.node().getContext("2d"),
 	dotContext = dotCanvas.node().getContext("2d");
-var races = ["white","hispanic","black","asian","other"]
+var colors = {"white":"#5C83D9","black":"#ACDE71","hispanic":"#DF9B3A","asian":"#DF4C30","other":"#B468D2"}
 
 function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,msaTopo,tractTopo) {
-   // var msaById = formatMsaDataById(msaData)
-
-   
-    var colors = {"white":"#5C83D9","black":"#ACDE71","hispanic":"#DF9B3A","asian":"#DF4C30","other":"#B468D2"}
-     drawKey(races,colors)
+    drawKey(races,colors)
     
+    //format all data
     var msaTopoFeatures = topojson.feature(msaTopo, msaTopo.objects["cbsa"]).features
     var msaTopoFeaturesById = reformatFeaturesById(msaTopoFeatures)
-    var chicagoData = formatMsaDataById(msaData)["16980"]
-    //filter chicag
-    var chicagoTopo = [msaTopoFeaturesById["16980"]]
-////    var chicagoData = msaById["16980"]
-    var chicagoTracts = msaTractDictionary["16980"].tracts
-    var boundingBox = findBoundingBox(chicagoTopo)
-    var centerLat = (boundingBox.max[1]+boundingBox.min[1])/2
-    var centerLng = (boundingBox.max[0]+boundingBox.min[0])/2
-    globals.center = [centerLng,centerLat]
-    var latDistance = boundingBox.max[1]-boundingBox.min[1]
-    globals.scale = globals.scale*latDistance
-    
-    var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
-    var path = d3.geo.path().projection(projection);
-    
-    
     var tractTopoFeatures = topojson.feature(tractTopo,tractTopo.objects["alltracts"]).features
     var tractTopoFeaturesById =  formatTractTopoById(tractTopoFeatures)
-      
-     var tractsFeatures = []
-    for(var t in chicagoTracts){
-        var tract = chicagoTracts[t]
-        tractsFeatures.push(tractTopoFeaturesById[tract])
-    }
-    var tractByRace = formatTractDataByRace(tractData)
     
-   //console.log(tractsFeatures)
-    for(var r in races){
-        var race = races[r]
-        drawTracts(tractsFeatures,tractByRace[race],colors[race])   
-    }
-    
-    
-    for(var r in races){
-        console.log(races[r])
-    }
+
+    d3.select("#chicagoMsa").attr("cursor","pointer").on("click",function(){
+        //get chicago data
+        var cityCode = "35620"
+        var center = [-74.001376,40.729249]
+        var scale = 50000
+        var cityData = formatMsaDataById(msaData)[cityCode]
+        var cityTopo = [msaTopoFeaturesById[cityCode]]
+        //find boundaries and center map
+        //var boundingBox = findBoundingBox(cityTopo)
+        //console.log(boundingBox)
+        //var centerLat = (boundingBox.max[1]+boundingBox.min[1])/2
+        //var centerLng = (boundingBox.max[0]+boundingBox.min[0])/2
+        globals.center = center
+       // var latDistance = boundingBox.max[1]-boundingBox.min[1]
+        globals.scale = scale
+        var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+        var path = d3.geo.path().projection(projection);
+   
+        var cityTracts = msaTractDictionary[cityCode].tracts
+     
+        drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext)
+    })
   
 }
-//function redrawMap(ci)
+function drawAll(cityCode,center,scale,formatMsaDataById,tractTopoFeaturesById,msaTopoFeaturesById,msaTractDictionary){
+    var cityData = formatMsaDataById(msaData)[cityCode]
+    var cityTopo = [msaTopoFeaturesById[cityCode]]
+    //find boundaries and center map
+    //var boundingBox = findBoundingBox(cityTopo)
+    //console.log(boundingBox)
+    //var centerLat = (boundingBox.max[1]+boundingBox.min[1])/2
+    //var centerLng = (boundingBox.max[0]+boundingBox.min[0])/2
+    globals.center = center
+   // var latDistance = boundingBox.max[1]-boundingBox.min[1]
+    globals.scale = scale
+    var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+    var path = d3.geo.path().projection(projection);
+   
+    var cityTracts = msaTractDictionary[cityCode].tracts
+     
+    drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext)
+}
+
 
 function drawKey(races,colors){
     var svg  = d3.select("#key").append("svg").attr("width",100).attr("height",100)
@@ -120,16 +125,17 @@ function drawKey(races,colors){
     .text(function(d,i){return d})
 }
 function findBoundingBox(poly){
+    //TODO: NOT WORKING!!!!!!!!!!!!!
     var coordinates = poly[0]["geometry"]["coordinates"][0]
     var maxLat = 0
     var minLat = 90
     var maxLng = -180
     var minLng = 0
     //cycle through coordinates
-    for(var i in coordinates){
-        var coordinate = coordinates[i]
-        var lat = coordinate[1]
-        var lng = coordinate[0]
+    for(var i in coordinates[0]){
+        var coordinate = coordinates[0][i]
+        var lat = coordinate[0]
+        var lng = coordinate[1]
         if(lat > maxLat){maxLat = lat}
         if(lat < minLat){minLat = lat}
         if(lng > maxLng){maxLng = lng}
@@ -143,14 +149,32 @@ function findBoundingBox(poly){
     return boundingBox
 }
 
-function drawTracts(features,tractsData,color){
+function drawRacesTracts(tractTopoFeaturesById,chicagoTracts,tractData,colors,polyContext){
+    
+     var tractsFeatures = []
+    for(var t in chicagoTracts){
+        var tract = chicagoTracts[t]
+        tractsFeatures.push(tractTopoFeaturesById[tract])
+    }
+    var tractByRace = formatTractDataByRace(tractData)
+    
+    for(var r in races){
+        var race = races[r]
+        drawTracts(tractsFeatures,tractByRace[race],colors[race],polyContext)   
+    }
+}
+
+function drawTracts(features,tractsData,color,polyContext){
     var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
     var path = d3.geo.path().projection(projection);
     var i=features.length;
     while(i--){
     		var r = parseInt(i / 256),
     			g = i % 256;
-    		drawPolygon( features[i], polyContext, "rgb(" + r + "," + g + ",0)" );
+             //   console.log(features[i])
+                if(features[i]!=undefined){
+            		drawPolygon(features[i], polyContext, "rgb(" + r + "," + g + ",0)" );                    
+                }
     	};
     var imageData = polyContext.getImageData(0,0,width,height);
     var colorRgb = hexToRgb(color)
@@ -158,40 +182,41 @@ function drawTracts(features,tractsData,color){
     var cg = colorRgb.g
     var cb = colorRgb.b
    // drawDots(features[0],imageData,r,g,population,color)
-
     i=features.length;
     	while(i--){
-            var tract =features[i].properties.AFFGEOID
-            //console.log(tractsData[tract])
-    		var pop = tractsData[tract]/50;	// one dot = 2 people
-    		if ( !pop ) continue;
+             if(features[i]!=undefined){
+                var tract =features[i].properties.AFFGEOID
+                //console.log(tractsData[tract])
+        		var pop = tractsData[tract]/50;	// one dot = 2 people
+        		if ( !pop ) continue;
 
-    		var bounds = path.bounds(features[i]),
-    			x0 = bounds[0][0],
-    			y0 = bounds[0][1],
-    			w = bounds[1][0] - x0,
-    			h = bounds[1][1] - y0,
-    			hits = 0,
-    			count = 0,
-    			limit = pop*10,	// limit tests just in case of infinite loops
-    			x,
-    			y,
-    			r = parseInt(i / 256),
-    			g = i % 256;
+        		var bounds = path.bounds(features[i]),
+        			x0 = bounds[0][0],
+        			y0 = bounds[0][1],
+        			w = bounds[1][0] - x0,
+        			h = bounds[1][1] - y0,
+        			hits = 0,
+        			count = 0,
+        			limit = pop*10,	// limit tests just in case of infinite loops
+        			x,
+        			y,
+        			r = parseInt(i / 256),
+        			g = i % 256;
 
-    		// test random points within feature bounding box
-    		while( hits < pop-1 && count < limit ){	// we're done when we either have enough dots or have tried too many times
-    			x = parseInt(x0 + Math.random()*w);
-    			y = parseInt(y0 + Math.random()*h);
+        		// test random points within feature bounding box
+        		while( hits < pop-1 && count < limit ){	// we're done when we either have enough dots or have tried too many times
+        			x = parseInt(x0 + Math.random()*w);
+        			y = parseInt(y0 + Math.random()*h);
 
-    			// use pixel color to determine if point is within polygon. draw the dot if so.
-    			if ( testPixelColor(imageData,x,y,width,r,g) ){
-    				drawPixel(x,y,cr,cg,cb,255);	// #09c, vintage @indiemaps
-    				hits++;
-    			}
-    			count ++;
-    		}
-    	}
+        			// use pixel color to determine if point is within polygon. draw the dot if so.
+        			if ( testPixelColor(imageData,x,y,width,r,g) ){
+        				drawPixel(x,y,cr,cg,cb,255);	// #09c, vintage @indiemaps
+        				hits++;
+        			}
+        			count ++;
+        		}
+        	}
+    }
 }
 
 function drawCity(cityTopo,cityData,imageData,r,g){
@@ -226,6 +251,7 @@ function testPixelColor(imageData,x,y,w,r,g){
 
 function drawPolygon(feature, context, fill ){
     var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+  //  console.log(feature)
     
 	var coordinates = feature.geometry.coordinates;
 	context.fillStyle = fill || "#000";
