@@ -10,8 +10,13 @@ $(function() {
         .defer(d3.json, tractTopo)
 		.await(dataDidLoad);
 })
-    var width = Math.max(660, window.innerWidth)
-    var height = Math.max(400, window.innerHeight)
+var width = Math.max(660, window.innerWidth)
+var height = Math.max(400, window.innerHeight)
+
+var globals = {
+    "center":[-88,42.3],
+    "scale":12000
+}
 // invisible map of polygons
 var polyCanvas = d3.select("#map")
 	.append("canvas")
@@ -35,26 +40,30 @@ var dotCanvas = container
 	.attr("width",width)
 	.attr("height",height)
 	.style({
-		"position": "absolute",
-		"top": "-100px",
-		"left": "-100px"
+		"position": "fixed",
+        "z-index":0,
+		"top": "0px",
+		"left": "0px"
 	});
-
-var races = ["white","hispanic","black","asian","other"]
-
-    var projection = d3.geo.mercator().scale(20000).center([-88,42]).translate([width / 2, height / 2]);
-    var path = d3.geo.path().projection(projection);
 var polyContext = polyCanvas.node().getContext("2d"),
 	dotContext = dotCanvas.node().getContext("2d");
-var colors = {
-  "white":"#68AE4D",
-  "black":"#698DBF",
-  "hispanic":"#DFAC3F",
-  "asian":"#D05055",
-  "other":"#C368B9"
-}
+var races = ["white","hispanic","black","asian","other"]
+
 function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,msaTopo,tractTopo) {
    // var msaById = formatMsaDataById(msaData)
+
+   
+    var colors = {
+      "white":"#5C83D9",
+      "black":"#7DD694",
+      "hispanic":"#DF9B3A",
+      "asian":"#DF4C30",
+      "other":"#B468D2"
+    }
+    
+    
+    
+    
     var msaTopoFeatures = topojson.feature(msaTopo, msaTopo.objects["cbsa"]).features
     var msaTopoFeaturesById = reformatFeaturesById(msaTopoFeatures)
     var chicagoData = formatMsaDataById(msaData)["16980"]
@@ -62,8 +71,20 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,
     var chicagoTopo = [msaTopoFeaturesById["16980"]]
 ////    var chicagoData = msaById["16980"]
     var chicagoTracts = msaTractDictionary["16980"].tracts
-      
-      var tractTopoFeatures = topojson.feature(tractTopo,tractTopo.objects["alltracts"]).features
+    var boundingBox = findBoundingBox(chicagoTopo)
+    var centerLat = (boundingBox.max[1]+boundingBox.min[1])/2
+    var centerLng = (boundingBox.max[0]+boundingBox.min[0])/2
+    globals.center = [centerLng,centerLat]
+    var latDistance = boundingBox.max[1]-boundingBox.min[1]
+    globals.scale = globals.scale*latDistance
+
+    console.log(latDistance)
+    
+    var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+    var path = d3.geo.path().projection(projection);
+    
+    
+    var tractTopoFeatures = topojson.feature(tractTopo,tractTopo.objects["alltracts"]).features
     var tractTopoFeaturesById =  formatTractTopoById(tractTopoFeatures)
       
      var tractsFeatures = []
@@ -74,15 +95,45 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,
     var tractByRace = formatTractDataByRace(tractData)
     
    //console.log(tractsFeatures)
-    drawTracts(tractsFeatures,tractByRace["white"],colors["white"])   
-    drawTracts(tractsFeatures,tractByRace["black"],colors["black"])   
-    drawTracts(tractsFeatures,tractByRace["hispanic"],colors["hispanic"])   
-    drawTracts(tractsFeatures,tractByRace["asian"],colors["asian"])   
-    drawTracts(tractsFeatures,tractByRace["other"],colors["other"])   
+    for(var r in races){
+        var race = races[r]
+        drawTracts(tractsFeatures,tractByRace[race],colors[race])   
+    }
+    
+  //  drawTracts(tractsFeatures,tractByRace["white"],colors["white"])   
+  //  drawTracts(tractsFeatures,tractByRace["black"],colors["black"])   
+  //  drawTracts(tractsFeatures,tractByRace["hispanic"],colors["hispanic"])   
+  //  drawTracts(tractsFeatures,tractByRace["asian"],colors["asian"])   
+  //  drawTracts(tractsFeatures,tractByRace["other"],colors["other"])   
+}
+function findBoundingBox(poly){
+    console.log(poly)
+    var coordinates = poly[0]["geometry"]["coordinates"][0]
+    var maxLat = 0
+    var minLat = 90
+    var maxLng = -180
+    var minLng = 0
+    //cycle through coordinates
+    for(var i in coordinates){
+        var coordinate = coordinates[i]
+        var lat = coordinate[1]
+        var lng = coordinate[0]
+        if(lat > maxLat){maxLat = lat}
+        if(lat < minLat){minLat = lat}
+        if(lng > maxLng){maxLng = lng}
+        if(lng < minLng){minLng = lng}
+    }
+    //sort
+    var lngs = [minLng, maxLng].sort()
+    var lats = [minLat,maxLat].sort()
+    //format
+    boundingBox = {"min":[lngs[0],lats[0]],"max":[lngs[1],lats[1]]}
+    return boundingBox
 }
 
-
 function drawTracts(features,tractsData,color){
+    var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+    var path = d3.geo.path().projection(projection);
     var i=features.length;
     while(i--){
     		var r = parseInt(i / 256),
@@ -162,6 +213,8 @@ function testPixelColor(imageData,x,y,w,r,g){
 }
 
 function drawPolygon(feature, context, fill ){
+    var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+    
 	var coordinates = feature.geometry.coordinates;
 	context.fillStyle = fill || "#000";
 	context.beginPath();
