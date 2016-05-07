@@ -17,6 +17,13 @@ body{
     font-size:30px;
     letter-spacing:2px;
 }
+#key{
+    position:fixed;
+    right:10px;
+    top:10px;
+    border:1px dotted black;
+    padding:10px;
+}
 #structure{
     
 }

@@ -53,16 +53,8 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,
    // var msaById = formatMsaDataById(msaData)
 
    
-    var colors = {
-      "white":"#5C83D9",
-      "black":"#7DD694",
-      "hispanic":"#DF9B3A",
-      "asian":"#DF4C30",
-      "other":"#B468D2"
-    }
-    
-    
-    
+    var colors = {"white":"#5C83D9","black":"#ACDE71","hispanic":"#DF9B3A","asian":"#DF4C30","other":"#B468D2"}
+     drawKey(races,colors)
     
     var msaTopoFeatures = topojson.feature(msaTopo, msaTopo.objects["cbsa"]).features
     var msaTopoFeaturesById = reformatFeaturesById(msaTopoFeatures)
@@ -77,8 +69,6 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,
     globals.center = [centerLng,centerLat]
     var latDistance = boundingBox.max[1]-boundingBox.min[1]
     globals.scale = globals.scale*latDistance
-
-    console.log(latDistance)
     
     var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
     var path = d3.geo.path().projection(projection);
@@ -100,14 +90,36 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,
         drawTracts(tractsFeatures,tractByRace[race],colors[race])   
     }
     
-  //  drawTracts(tractsFeatures,tractByRace["white"],colors["white"])   
-  //  drawTracts(tractsFeatures,tractByRace["black"],colors["black"])   
-  //  drawTracts(tractsFeatures,tractByRace["hispanic"],colors["hispanic"])   
-  //  drawTracts(tractsFeatures,tractByRace["asian"],colors["asian"])   
-  //  drawTracts(tractsFeatures,tractByRace["other"],colors["other"])   
+    
+    for(var r in races){
+        console.log(races[r])
+    }
+  
+}
+//function redrawMap(ci)
+
+function drawKey(races,colors){
+    var svg  = d3.select("#key").append("svg").attr("width",100).attr("height",100)
+    svg.selectAll("rect")
+    .data(races)
+    .enter()
+    .append("rect")
+    .attr("x",10)
+    .attr("y",function(d,i){return i*20})
+    .attr("width",10)
+    .attr("height",10)
+    .attr("fill",function(d,i){return colors[d]})
+    
+    svg.selectAll("text")
+    .data(races)
+    .enter()
+    .append("text")
+    .attr("x",25)
+    .attr("y",function(d,i){return i*20+10})
+    .attr("fill",function(d,i){return colors[d]})
+    .text(function(d,i){return d})
 }
 function findBoundingBox(poly){
-    console.log(poly)
     var coordinates = poly[0]["geometry"]["coordinates"][0]
     var maxLat = 0
     var minLat = 90
@@ -151,7 +163,7 @@ function drawTracts(features,tractsData,color){
     	while(i--){
             var tract =features[i].properties.AFFGEOID
             //console.log(tractsData[tract])
-    		var pop = tractsData[tract]/20;	// one dot = 2 people
+    		var pop = tractsData[tract]/50;	// one dot = 2 people
     		if ( !pop ) continue;
 
     		var bounds = path.bounds(features[i]),
@@ -231,10 +243,10 @@ function drawPolygon(feature, context, fill ){
 	context.closePath();
 	context.fill();
 }
-
 function drawPixel (x, y, r, g, b, a) {
-	dotContext.fillStyle = "rgba("+r+","+g+","+b+","+(a/255)+")";
-	dotContext.fillRect( x, y, .5,1 );
+	//dotContext.fillStyle = "rgba("+r+","+g+","+b+","+(a/255)+")";
+	dotContext.fillStyle = "rgba("+r+","+g+","+b+","+.2+")";
+	dotContext.fillRect( x, y, 2,2 );
 }
 function drawDots(features,imageData,r,g,population,color){
 	// now draw dots
