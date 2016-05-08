@@ -33,14 +33,86 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,
     d3.select("#chicagoTract").style("cursor","pointer").on("click",function(){
        drawAll([-87.672450,41.831858],20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"16980")
      })
-  
      d3.select("#miamiTract").style("cursor","pointer").on("click",function(){
-       drawAll([-80.213237,25.95],20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"33100")
+       drawAll([-80.213237,25.95],30000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"33100")
      })
-  
-}
-function drawAll(center,scale,tractTopoFeaturesById,msaTractDictionary,tractData,colors,cityCode){
+     d3.select("#nycTract").style("cursor","pointer").on("click",function(){
+       drawAll([-74.001376,40.729249],20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"35620")
+     })
+     
+ var contexts = setContexts()
+    var polyContext =contexts[0] 
+    var dotContext = contexts[1]
+     var msaCode = "16980"
+     //drawTracts([msaTopoFeaturesById["35620"]],msaData,"#aadd00",polyContext,dotContext,20000,[-87.672450,41.831858])
+     
+     var r = 255
+     var g = 200
+     drawPolygon(msaTopoFeaturesById[msaCode], polyContext, "rgb(" + r + "," + g + ",0)" ); 
+ 	var imageData = polyContext.getImageData(0,0,width,height);
+    var projection = d3.geo.mercator().scale(20000).center([-87.672450,41.831858]).translate([width / 2, height / 2]);
     
+    var path = d3.geo.path().projection(projection);
+    
+    
+     console.log(formatTractDataByRace(msaData)["black"]["310M200US"+msaCode])
+     
+     drawDots([msaTopoFeaturesById[msaCode]],imageData,r,g,5168821,colors["white"],path,dotContext)
+     drawDots([msaTopoFeaturesById[msaCode]],imageData,r,g,2000001,colors["black"],path,dotContext)
+}
+
+function drawDots(features,imageData,r,g,population,color,path,dotContext){
+	// now draw dots
+	i=features.length;
+	while(i--){
+//		var pop = features[i].properties.POP10;	// one dot = 2 people
+	  var pop = population/50
+  	if ( !pop ) continue;
+    console.log(features[i])
+		var bounds = path.bounds(features[i]),
+			x0 = bounds[0][0],
+			y0 = bounds[0][1],
+			w = bounds[1][0] - x0,
+			h = bounds[1][1] - y0,
+			hits = 0,
+			count = 0,
+			limit = pop*10,	// limit tests just in case of infinite loops
+			x,
+			y
+	//		r = parseInt(i / 256),
+	//		g = i % 256;
+
+		// test random points within feature bounding box
+		while( hits < pop-1 && count < limit ){	// we're done when we either have enough dots or have tried too many times
+			x = parseInt(x0 + Math.random()*w);
+			y = parseInt(y0 + Math.random()*h);
+
+			// use pixel color to determine if point is within polygon. draw the dot if so.
+			if ( testPixelColor(imageData,x,y,width,r,g) ){
+        //var color = colors[parseInt(Math.random()*19)]
+        var colorrgb = hexToRgb(color)
+				drawPixel(x,y,colorrgb.r,colorrgb.g,colorrgb.b,255,dotContext);	// #09c, vintage @indiemaps
+				hits++;
+			}
+			count ++;
+		}
+	}
+}
+
+function drawAll(center,scale,tractTopoFeaturesById,msaTractDictionary,tractData,colors,cityCode){
+    var polyContext = setContexts()[0] 
+    var dotContext = setContexts()[1]
+    
+    globals.center = center
+    globals.scale = scale
+    var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+    var path = d3.geo.path().projection(projection);
+    var cityTracts = msaTractDictionary[cityCode].tracts
+
+    
+    drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext,dotContext)
+}
+function setContexts(){
     d3.selectAll("#map div").remove()
     d3.selectAll("#map canvas").remove()
     
@@ -73,25 +145,8 @@ var dotCanvas = container
 	});
 var polyContext = polyCanvas.node().getContext("2d"),
 	dotContext = dotCanvas.node().getContext("2d");
-    
-    
-      globals.center = center
-      globals.scale = scale
-      var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
-      var path = d3.geo.path().projection(projection);
-       var cityTracts = msaTractDictionary[cityCode].tracts
-    
-       drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext,dotContext)
-    
- //  console.log([cityCode,center,scale,formatMsaDataById,tractTopoFeaturesById,msaTopoFeaturesById,msaTractDictionary,polyContext])
-//    var cityData = formatMsaDataById(msaData)[cityCode]
-//    var cityTopo = [msaTopoFeaturesById[cityCode]]
-   // globals.center = center
-   // globals.scale = scale
-   // var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
-   // var path = d3.geo.path().projection(projection);
-   // var cityTracts = msaTractDictionary[cityCode].tracts
-   // drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext)
+ 
+ return [polyContext,dotContext]
 }
 
 
@@ -157,6 +212,8 @@ function drawRacesTracts(tractTopoFeaturesById,chicagoTracts,tractData,colors,po
 }
 
 function drawTracts(features,tractsData,color,polyContext,dotContext){
+  // console.log(features)
+    //console.log(tractsData)
     var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
     var path = d3.geo.path().projection(projection);
     var i=features.length;
@@ -211,22 +268,6 @@ function drawTracts(features,tractsData,color,polyContext,dotContext){
     }
 }
 
-function drawCity(cityTopo,cityData,imageData,r,g){
-    console.log("draw dots")
-    drawDots(cityTopo,imageData,r,g,cityData["white"],colors["white"])
-    drawDots(cityTopo,imageData,r,g,cityData["black"],colors["black"])
-    drawDots(cityTopo,imageData,r,g,cityData["hispanic"],colors["hispanic"])
-    drawDots(cityTopo,imageData,r,g,cityData["asian"],colors["asian"])
-    drawDots(cityTopo,imageData,r,g,cityData["other"],colors["other"])
- //  var races = ["white","hispanic","black","asian","other"]
-  //  for(var r in races){
-  //      var race = races[r]
-  //      console.log(race)
-  //      console.log(cityData[race])
-  //      console.log(colors[race])
-  //      drawDots(cityTopo,imageData,r,g,cityData[race],colors["other"])
-  //  }
-}
 
 function hexToRgb(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -266,42 +307,7 @@ function drawPixel (x, y, r, g, b, a,dotContext) {
 	dotContext.fillStyle = "rgba("+r+","+g+","+b+","+.2+")";
 	dotContext.fillRect( x, y, 2,2 );
 }
-function drawDots(features,imageData,r,g,population,color){
-	// now draw dots
-	i=features.length;
-	while(i--){
-//		var pop = features[i].properties.POP10;	// one dot = 2 people
-	  var pop = population/5
-  	if ( !pop ) continue;
-		var bounds = path.bounds(features[i]),
-			x0 = bounds[0][0],
-			y0 = bounds[0][1],
-			w = bounds[1][0] - x0,
-			h = bounds[1][1] - y0,
-			hits = 0,
-			count = 0,
-			limit = pop*10,	// limit tests just in case of infinite loops
-			x,
-			y
-	//		r = parseInt(i / 256),
-	//		g = i % 256;
 
-		// test random points within feature bounding box
-		while( hits < pop-1 && count < limit ){	// we're done when we either have enough dots or have tried too many times
-			x = parseInt(x0 + Math.random()*w);
-			y = parseInt(y0 + Math.random()*h);
-
-			// use pixel color to determine if point is within polygon. draw the dot if so.
-			if ( testPixelColor(imageData,x,y,width,r,g) ){
-        //var color = colors[parseInt(Math.random()*19)]
-        var colorrgb = hexToRgb(color)
-				drawPixel(x,y,colorrgb.r,colorrgb.g,colorrgb.b,255);	// #09c, vintage @indiemaps
-				hits++;
-			}
-			count ++;
-		}
-	}
-}
 function reformatFeaturesById(features){
   var reformated = {}
   for(var f in features){
