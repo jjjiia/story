@@ -18,6 +18,32 @@ var globals = {
 }
 var races = ["white","hispanic","black","asian","other"]
 // invisible map of polygons
+var colors = {"white":"#5C83D9","black":"#ACDE71","hispanic":"#DF9B3A","asian":"#DF4C30","other":"#B468D2"}
+
+function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,msaTopo,tractTopo) {
+    drawKey(races,colors)
+    
+    //format all data
+    var msaTopoFeatures = topojson.feature(msaTopo, msaTopo.objects["cbsa"]).features
+    var msaTopoFeaturesById = reformatFeaturesById(msaTopoFeatures)
+    var tractTopoFeatures = topojson.feature(tractTopo,tractTopo.objects["alltracts"]).features
+    var tractTopoFeaturesById =  formatTractTopoById(tractTopoFeatures)
+    
+
+    d3.select("#chicagoTract").style("cursor","pointer").on("click",function(){
+       drawAll([-87.672450,41.831858],20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"16980")
+     })
+  
+     d3.select("#miamiTract").style("cursor","pointer").on("click",function(){
+       drawAll([-80.213237,25.95],20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"33100")
+     })
+  
+}
+function drawAll(center,scale,tractTopoFeaturesById,msaTractDictionary,tractData,colors,cityCode){
+    
+    d3.selectAll("#map div").remove()
+    d3.selectAll("#map canvas").remove()
+    
 var polyCanvas = d3.select("#map")
 	.append("canvas")
 	.attr("width",width)
@@ -47,59 +73,25 @@ var dotCanvas = container
 	});
 var polyContext = polyCanvas.node().getContext("2d"),
 	dotContext = dotCanvas.node().getContext("2d");
-var colors = {"white":"#5C83D9","black":"#ACDE71","hispanic":"#DF9B3A","asian":"#DF4C30","other":"#B468D2"}
-
-function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,msaTopo,tractTopo) {
-    drawKey(races,colors)
     
-    //format all data
-    var msaTopoFeatures = topojson.feature(msaTopo, msaTopo.objects["cbsa"]).features
-    var msaTopoFeaturesById = reformatFeaturesById(msaTopoFeatures)
-    var tractTopoFeatures = topojson.feature(tractTopo,tractTopo.objects["alltracts"]).features
-    var tractTopoFeaturesById =  formatTractTopoById(tractTopoFeatures)
     
-
-    d3.select("#chicagoMsa").attr("cursor","pointer").on("click",function(){
-        //get chicago data
-        var cityCode = "35620"
-        var center = [-74.001376,40.729249]
-        var scale = 50000
-        var cityData = formatMsaDataById(msaData)[cityCode]
-        var cityTopo = [msaTopoFeaturesById[cityCode]]
-        //find boundaries and center map
-        //var boundingBox = findBoundingBox(cityTopo)
-        //console.log(boundingBox)
-        //var centerLat = (boundingBox.max[1]+boundingBox.min[1])/2
-        //var centerLng = (boundingBox.max[0]+boundingBox.min[0])/2
-        globals.center = center
-       // var latDistance = boundingBox.max[1]-boundingBox.min[1]
-        globals.scale = scale
-        var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
-        var path = d3.geo.path().projection(projection);
-   
-        var cityTracts = msaTractDictionary[cityCode].tracts
-     
-        drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext)
-    })
-  
-}
-function drawAll(cityCode,center,scale,formatMsaDataById,tractTopoFeaturesById,msaTopoFeaturesById,msaTractDictionary){
-    var cityData = formatMsaDataById(msaData)[cityCode]
-    var cityTopo = [msaTopoFeaturesById[cityCode]]
-    //find boundaries and center map
-    //var boundingBox = findBoundingBox(cityTopo)
-    //console.log(boundingBox)
-    //var centerLat = (boundingBox.max[1]+boundingBox.min[1])/2
-    //var centerLng = (boundingBox.max[0]+boundingBox.min[0])/2
-    globals.center = center
-   // var latDistance = boundingBox.max[1]-boundingBox.min[1]
-    globals.scale = scale
-    var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
-    var path = d3.geo.path().projection(projection);
-   
-    var cityTracts = msaTractDictionary[cityCode].tracts
-     
-    drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext)
+      globals.center = center
+      globals.scale = scale
+      var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+      var path = d3.geo.path().projection(projection);
+       var cityTracts = msaTractDictionary[cityCode].tracts
+    
+       drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext,dotContext)
+    
+ //  console.log([cityCode,center,scale,formatMsaDataById,tractTopoFeaturesById,msaTopoFeaturesById,msaTractDictionary,polyContext])
+//    var cityData = formatMsaDataById(msaData)[cityCode]
+//    var cityTopo = [msaTopoFeaturesById[cityCode]]
+   // globals.center = center
+   // globals.scale = scale
+   // var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+   // var path = d3.geo.path().projection(projection);
+   // var cityTracts = msaTractDictionary[cityCode].tracts
+   // drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext)
 }
 
 
@@ -149,7 +141,7 @@ function findBoundingBox(poly){
     return boundingBox
 }
 
-function drawRacesTracts(tractTopoFeaturesById,chicagoTracts,tractData,colors,polyContext){
+function drawRacesTracts(tractTopoFeaturesById,chicagoTracts,tractData,colors,polyContext,dotContext){
     
      var tractsFeatures = []
     for(var t in chicagoTracts){
@@ -160,11 +152,11 @@ function drawRacesTracts(tractTopoFeaturesById,chicagoTracts,tractData,colors,po
     
     for(var r in races){
         var race = races[r]
-        drawTracts(tractsFeatures,tractByRace[race],colors[race],polyContext)   
+        drawTracts(tractsFeatures,tractByRace[race],colors[race],polyContext,dotContext)   
     }
 }
 
-function drawTracts(features,tractsData,color,polyContext){
+function drawTracts(features,tractsData,color,polyContext,dotContext){
     var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
     var path = d3.geo.path().projection(projection);
     var i=features.length;
@@ -210,7 +202,7 @@ function drawTracts(features,tractsData,color,polyContext){
 
         			// use pixel color to determine if point is within polygon. draw the dot if so.
         			if ( testPixelColor(imageData,x,y,width,r,g) ){
-        				drawPixel(x,y,cr,cg,cb,255);	// #09c, vintage @indiemaps
+        				drawPixel(x,y,cr,cg,cb,255,dotContext);	// #09c, vintage @indiemaps
         				hits++;
         			}
         			count ++;
@@ -269,7 +261,7 @@ function drawPolygon(feature, context, fill ){
 	context.closePath();
 	context.fill();
 }
-function drawPixel (x, y, r, g, b, a) {
+function drawPixel (x, y, r, g, b, a,dotContext) {
 	//dotContext.fillStyle = "rgba("+r+","+g+","+b+","+(a/255)+")";
 	dotContext.fillStyle = "rgba("+r+","+g+","+b+","+.2+")";
 	dotContext.fillRect( x, y, 2,2 );
