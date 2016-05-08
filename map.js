@@ -5,22 +5,25 @@ $(function() {
         .defer(d3.json,diversityScores)
         .defer(d3.csv,msaData)
         .defer(d3.csv,tractData)
+    .defer(d3.csv,msaGeolocation)
         .defer(d3.json, msaTractDictionary)
         .defer(d3.json, msaTopo)
         .defer(d3.json, tractTopo)
+    .defer(d3.json,msaCentroids)
 		.await(dataDidLoad);
 })
 var width = Math.max(660, window.innerWidth)
 var height = Math.max(400, window.innerHeight)
 var globals = {
-    "center":[-88,42.3],
-    "scale":12000
+    "center":[-87.96198062423504,41.7027346781305],
+    "scale":20000,
+    "populationFactor":100
 }
 var races = ["white","hispanic","black","asian","other"]
 // invisible map of polygons
 var colors = {"white":"#5C83D9","black":"#ACDE71","hispanic":"#DF9B3A","asian":"#DF4C30","other":"#B468D2"}
 
-function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,msaTopo,tractTopo) {
+function dataDidLoad(error,diversityScores,msaData,tractData,msaGeolocation,msaTractDictionary,msaTopo,tractTopo,msaCentroids) {
     drawKey(races,colors)
     
     //format all data
@@ -28,37 +31,49 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaTractDictionary,
     var msaTopoFeaturesById = reformatFeaturesById(msaTopoFeatures)
     var tractTopoFeatures = topojson.feature(tractTopo,tractTopo.objects["alltracts"]).features
     var tractTopoFeaturesById =  formatTractTopoById(tractTopoFeatures)
+    var centroidsById = formatCentroidsById(msaCentroids)
+        var chicago = "16980"
     
 
     d3.select("#chicagoTract").style("cursor","pointer").on("click",function(){
-       drawAll([-87.672450,41.831858],20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"16980")
+       drawAll(centroidsById[chicago].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"16980")
      })
      d3.select("#miamiTract").style("cursor","pointer").on("click",function(){
-       drawAll([-80.213237,25.95],30000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"33100")
+       drawAll(centroidsById["33100"].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"33100")
      })
      d3.select("#nycTract").style("cursor","pointer").on("click",function(){
-       drawAll([-74.001376,40.729249],20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"35620")
+       drawAll(centroidsById["35620"].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"35620")
      })
      
- var contexts = setContexts()
-    var polyContext =contexts[0] 
-    var dotContext = contexts[1]
-     var msaCode = "16980"
-     //drawTracts([msaTopoFeaturesById["35620"]],msaData,"#aadd00",polyContext,dotContext,20000,[-87.672450,41.831858])
+     d3.select("#chicagoMsa").style("cursor","pointer").on("click",function(){
+       // drawAll([-87.672450,41.831858],20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"16980")
+         var contexts = setContexts()
+        var polyContext =contexts[0] 
+        var dotContext = contexts[1]
+         var msaCode = "16980"
+         //drawTracts([msaTopoFeaturesById["35620"]],msaData,"#aadd00",polyContext,dotContext,20000,[-87.672450,41.831858])
      
-     var r = 255
-     var g = 200
-     drawPolygon(msaTopoFeaturesById[msaCode], polyContext, "rgb(" + r + "," + g + ",0)" ); 
- 	var imageData = polyContext.getImageData(0,0,width,height);
-    var projection = d3.geo.mercator().scale(20000).center([-87.672450,41.831858]).translate([width / 2, height / 2]);
-    
+         var r = 255
+         var g = 200
+         drawPolygon(msaTopoFeaturesById[msaCode], polyContext, "rgb(" + r + "," + g + ",0)" ); 
+     	var imageData = polyContext.getImageData(0,0,width,height);
+        var center = centroidsById[chicago].centroid
+        var scale = 20000
+        globals.center = center
+        globals.scale = scale
+        var projection = d3.geo.mercator().scale(scale).center(center).translate([width / 2, height / 2]);
+        drawMsa(msaData,msaCode,msaTopoFeaturesById,imageData,r,g,dotContext,projection)
+      })
+}
+function drawMsa(msaData,msaCode,msaTopoFeaturesById,imageData,r,g,dotContext,projection){
     var path = d3.geo.path().projection(projection);
     
-    
-     console.log(formatTractDataByRace(msaData)["black"]["310M200US"+msaCode])
-     
-     drawDots([msaTopoFeaturesById[msaCode]],imageData,r,g,5168821,colors["white"],path,dotContext)
-     drawDots([msaTopoFeaturesById[msaCode]],imageData,r,g,2000001,colors["black"],path,dotContext)
+    var racePopulationAll = formatTractDataByRace(msaData)
+    for(var i in races){
+        var race = races[i]
+        population=racePopulationAll[race]["310M200US"+msaCode]
+        drawDots([msaTopoFeaturesById[msaCode]],imageData,r,g,population,colors[race],path,dotContext)
+    }
 }
 
 function drawDots(features,imageData,r,g,population,color,path,dotContext){
@@ -66,9 +81,8 @@ function drawDots(features,imageData,r,g,population,color,path,dotContext){
 	i=features.length;
 	while(i--){
 //		var pop = features[i].properties.POP10;	// one dot = 2 people
-	  var pop = population/50
+	  var pop = population/globals.populationFactor
   	if ( !pop ) continue;
-    console.log(features[i])
 		var bounds = path.bounds(features[i]),
 			x0 = bounds[0][0],
 			y0 = bounds[0][1],
@@ -102,7 +116,6 @@ function drawDots(features,imageData,r,g,population,color,path,dotContext){
 function drawAll(center,scale,tractTopoFeaturesById,msaTractDictionary,tractData,colors,cityCode){
     var polyContext = setContexts()[0] 
     var dotContext = setContexts()[1]
-    
     globals.center = center
     globals.scale = scale
     var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
@@ -236,7 +249,7 @@ function drawTracts(features,tractsData,color,polyContext,dotContext){
              if(features[i]!=undefined){
                 var tract =features[i].properties.AFFGEOID
                 //console.log(tractsData[tract])
-        		var pop = tractsData[tract]/50;	// one dot = 2 people
+        		var pop = tractsData[tract]/globals.populationFactor;	// one dot = 2 people
         		if ( !pop ) continue;
 
         		var bounds = path.bounds(features[i]),
@@ -342,6 +355,16 @@ function formatMsaGeoById(features){
     for(var f in features["features"]){
       var geoid = features["features"][f]["properties"]["GEOID"]
       reformated[geoid]=features["features"][f]
+    }
+    return reformated
+}
+function formatCentroidsById(msaCentroids){
+    var reformated = {}
+    for(var f in msaCentroids.features){
+      var geoid = msaCentroids.features[f]["properties"]["GEOID"]
+        reformated[geoid]={}
+      reformated[geoid]["centroid"]=msaCentroids.features[f].geometry.coordinates
+//      reformated[geoid]["area"]=msaCentroids.features[f].properties.area2
     }
     return reformated
 }
