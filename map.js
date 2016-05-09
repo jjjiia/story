@@ -29,7 +29,6 @@ var races = ["white","hispanic","black","asian","other"]
 var colors = {"white":"#5C83D9","black":"#ACDE71","hispanic":"#DF9B3A","asian":"#DF4C30","other":"#B468D2"}
 
 function dataDidLoad(error,diversityScores,msaData,tractData,msaGeolocation,msaTractDictionary,msaTopo,tractTopo,msaCentroids) {
-    drawKey(races,colors)
     //format all data
     var msaTopoFeatures = topojson.feature(msaTopo, msaTopo.objects["cbsa"]).features
     var msaTopoFeaturesById = reformatFeaturesById(msaTopoFeatures)
@@ -47,11 +46,13 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaGeolocation,msaT
     d3.select("#intro").style("cursor","pointer").on("click",function(){
     drawVectorMap(tractTopoFeaturesById,[msaTopoFeaturesById[chicago]],tractData,msaData,chicago,projection,svg)
      drawUniversityOfChicago(svg,projection)
+        drawKey(races,colors)
+        
      })
     
  //   drawTracts([tractTopoFeaturesById[chicago]],[msaTopoFeaturesById[chicago]],tractData,msaData,chicago,projection,svg)
     
-    d3.select("#chicagoTract").style("cursor","pointer").on("click",function(){
+    d3.select("#chicagoTract").style("cursor","pointer").on("click",function(){        
         drawAll(centroidsById[chicago].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"16980","Chicago")
      })
      d3.select("#miamiTract").style("cursor","pointer").on("click",function(){
