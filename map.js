@@ -52,13 +52,13 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaGeolocation,msaT
  //   drawTracts([tractTopoFeaturesById[chicago]],[msaTopoFeaturesById[chicago]],tractData,msaData,chicago,projection,svg)
     
     d3.select("#chicagoTract").style("cursor","pointer").on("click",function(){
-        drawAll(centroidsById[chicago].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"16980")
+        drawAll(centroidsById[chicago].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"16980","Chicago")
      })
      d3.select("#miamiTract").style("cursor","pointer").on("click",function(){
-       drawAll(centroidsById["33100"].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"33100")
+       drawAll(centroidsById["33100"].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"33100","Miami")
      })
      d3.select("#nycTract").style("cursor","pointer").on("click",function(){
-       drawAll(centroidsById["35620"].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"35620")
+       drawAll(centroidsById["35620"].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"35620","NYC")
      })
      
      d3.select("#cityRank").style("cursor","pointer").on("click",function(){
@@ -125,20 +125,22 @@ var yAxis = d3.svg.axis()
     .orient("left");
     
   var tip = d3.tip()
-    .attr('class', 'd3-tip')
-    .offset([-10, 0])
+   // .attr('class', 'd3-tip')
+    .offset([-10, 10])
+    
     
     
     var svg = d3.select("#plot").append("svg").attr("width",400).attr("height",400)
-    
+    svg.append("text").text("MSA Diversity").attr("x",270).attr("y",320)
+    svg.append("text").text("Average Tract Diversity").attr("x",35).attr("y",20)
     svg.call(tip)
     
     svg.selectAll("circle")
     .data(newArray)
     .enter()
     .append("circle")
-    .attr("cx",function(d){return xScale(d.tractsD)})
-    .attr("cy",function(d){return yScale(d.msaD)})
+    .attr("cy",function(d){return yScale(d.tractsD)})
+    .attr("cx",function(d){return xScale(d.msaD)})
     .attr("r",4)
     .attr("opacity",.2)
     .attr("cursor","pointer")
@@ -155,7 +157,7 @@ var yAxis = d3.svg.axis()
         d3.selectAll("#plot circle").attr("fill","#000")
         d3.select(this).attr("fill","red")
         
-       drawAll(centroidsById[d.msaCode].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,d.msaCode)
+       drawAll(centroidsById[d.msaCode].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,d.msaCode,d.name)
         
     })
     
@@ -201,7 +203,7 @@ function drawRow(rowData,key,centroidsById,tractTopoFeaturesById,msaTractDiction
         var projection = d3.geo.mercator().scale(20000).center(centroidsById[rowData.geoid].centroid).translate([width / 2, height / 2]);
     d3.selectAll("#map text").remove()
     d3.selectAll("#map .uoc").remove()
-       drawAll(centroidsById[rowData.geoid].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,rowData.geoid)
+       drawAll(centroidsById[rowData.geoid].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,rowData.geoid,rowData.name)
        // drawVectorMap(tractTopoFeaturesById,[msaTopoFeaturesById[rowData.geoid]],tractData,msaData,rowData.geoid,projection,svg)
         drawCityLabel(centroidsById[rowData.geoid].centroid, rowData.name,projection)
    
@@ -305,18 +307,22 @@ function drawDots(features,imageData,r,g,population,color,path,dotContext){
 	}
 }
 
-function drawAll(center,scale,tractTopoFeaturesById,msaTractDictionary,tractData,colors,cityCode){
+function drawAll(center,scale,tractTopoFeaturesById,msaTractDictionary,tractData,colors,cityCode,cityName){
+  //  console.log(tractTopoFeaturesById)
     d3.selectAll("#map text").remove()
     d3.selectAll("#map path").remove()
     d3.selectAll("#map .uoc").remove()
     var polyContext = setContexts()[0] 
     var dotContext = setContexts()[1]
     globals.center = center
-    globals.scale = scale
+    globals.scale = scale    
     var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+
     var path = d3.geo.path().projection(projection);
     var cityTracts = msaTractDictionary[cityCode].tracts    
     drawRacesTracts(tractTopoFeaturesById,cityTracts,tractData,colors,polyContext,dotContext)
+    drawCityLabel(center,cityName,projection)
+
 }
 function setContexts(){
     d3.selectAll("#map div").remove()
