@@ -38,7 +38,7 @@ body{
 #map{
     text-align:center;
 }
-#rank{}
+#rank{height:500px;}
 table{
     padding:5px;
 }
