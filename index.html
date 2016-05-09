@@ -9,35 +9,35 @@
     <script src="static/queue.js"></script>	
     <script src="static/sortable.js"></script>	
 	<script src="http://d3js.org/topojson.v1.min.js"></script>
-  
+ <script src="static/d3.tip.v0.6.3.js"></script>
 	<link rel="stylesheet" type="text/css" href="styles/story.css"> </style>
   
 </head>
 
 <body>
 <div id = "text">
-  <p>translating a written story to a visual story </p>
-  <p>A recreation of "The Most Diverse Cities Are Often The Most Segregated" from 
+  <p id = "start">A recreation of "The Most Diverse Cities Are Often The Most Segregated" from 
   http://fivethirtyeight.com/features/the-most-diverse-cities-are-often-the-most-segregated/</p>
   <div id = "text-story">
     
-    <p>Personal angle -</p>
+    <p id="intro">Nate Silver remembers hearing the same caution many times when he attended the University of Chicago. Despite the university
+      counting its diverse urban setting as one of its assets, students were warned not to go outside of the boundaries of their campus neighborhood. Segregation remains a problem in Chicago today.</p>
     
      <p id = "chicagoMsa">What is the difference between diversity and integration? To say that chicago is diverse, we are essentially looking at a map like this where we see that chicago has a great number of minority groups within its boundaries
    chicago by Msa</p>
-    <p id = "chicagoTract">However if we look at the diversity within each of Chicago's neightborhoods, we see that neighborhoods are highly segregated.</p>
+    <p id = "chicagoTract">However if we look at the diversity within each of Chicago's neightborhoods, we see that neighborhoods are highly segregated by race.</p>
+    
+    <p id = "cityPlot">If we plot the two measures MSA-wide diversity and average tract diversity, we can see that the upper right quadrant </p>
+    <p id = "plot"></p>
+
+    <p id = "cityRank">Here are how the largest cities rank by this measure. Click any city to see how they look compared to their scores.</p>
+    <p id = "rank"></p>
     <p id = "miamiTract">Of the 10 largest msas by population, Miami comes in second, </p>
     <p id = "nycTract">Along with the New York and New Jersey area.</p>
-
-    <p id = "cityRank"> city Rank</p>
-    <div id = "rank">ranking</div>
-    
-    <p></p>
-    
-    <p id = "cityPlot">cityPlot</p>
+    <p id = "summary">Diversity measures based on increasingly nuance way to measuring cities point to larger issues of economics and unequal education funding.......</p>
     
 </div>
-<div id = "structure">architecture</div>
+<div id = "structure">TODO: the architecture of this story</div>
 
 </div>
 

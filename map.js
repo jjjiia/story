@@ -42,8 +42,14 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaGeolocation,msaT
 
         
     var projection = d3.geo.mercator().scale(globals.scale).center(globals.center).translate([width / 2, height / 2]);
+    
+       
+    d3.select("#intro").style("cursor","pointer").on("click",function(){
     drawVectorMap(tractTopoFeaturesById,[msaTopoFeaturesById[chicago]],tractData,msaData,chicago,projection,svg)
      drawUniversityOfChicago(svg,projection)
+     })
+    
+ //   drawTracts([tractTopoFeaturesById[chicago]],[msaTopoFeaturesById[chicago]],tractData,msaData,chicago,projection,svg)
     
     d3.select("#chicagoTract").style("cursor","pointer").on("click",function(){
         drawAll(centroidsById[chicago].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"16980")
@@ -55,7 +61,12 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaGeolocation,msaT
        drawAll(centroidsById["35620"].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,"35620")
      })
      
-    sortableTable(diversityScores,centroidsById,tractTopoFeaturesById,msaTractDictionary,tractData,colors,svg,projection,msaData,msaTopoFeaturesById)
+     d3.select("#cityRank").style("cursor","pointer").on("click",function(){
+         sortableTable(diversityScores,centroidsById,tractTopoFeaturesById,msaTractDictionary,tractData,colors,svg,projection,msaData,msaTopoFeaturesById)
+     })
+     d3.select("#cityPlot").style("cursor","pointer").on("click",function(){
+         plot(diversityScores,centroidsById,tractTopoFeaturesById,msaTractDictionary,tractData,colors,svg,projection,msaData,msaTopoFeaturesById)
+     })
  //    drawVectorMap(tractTopoFeaturesById,[msaTopoFeaturesById[chicago]],tractData,msaData,chicago,projection,svg)
      
      
@@ -79,7 +90,88 @@ function dataDidLoad(error,diversityScores,msaData,tractData,msaGeolocation,msaT
   })
   
 }
+function drawTracts(tractTopo,msaTopo,tractData,msaData,cityId,projection,svg){
+    d3.select("#map path").remove()
+    
+    var path = d3.geo.path().projection(projection)
+    svg.selectAll(".tracts")
+    .data(msaTopo)
+    .enter()
+    .append("path")
+    .attr("d",path)
+    .attr("class",cityId)
+    .attr("stroke",function(d){return "#aaa"})
+    .attr("fill","none")
+    
+}
+function plot(diversityScores,centroidsById,tractTopoFeaturesById,msaTractDictionary,tractData,colors,svg,projection,msaData,msaTopoFeaturesById){
+    d3.select("#plot svg").remove()
+    var array = []
+    for(var j in diversityScores){
+        //console.log(diversityScores[j])
+        array.push({"name":diversityScores[j].name,"msaCode":diversityScores[j].msaCode,"msaD":diversityScores[j].msaD,"tractsD":diversityScores[j].tractsD})
+    }
+    var newArray = array.sort(function(a,b){return b["population"]-a["population"]}).slice(1,100)
+    
+    var xScale = d3.scale.linear().domain([0,100]).range([0,300])
+    var yScale = d3.scale.linear().domain([0,100]).range([300,0])
+    
+var xAxis = d3.svg.axis()
+    .scale(xScale)
+    .tickSize(-height);
+var yAxis = d3.svg.axis()
+    .scale(yScale)
+    .ticks(4)
+    .orient("left");
+    
+  var tip = d3.tip()
+    .attr('class', 'd3-tip')
+    .offset([-10, 0])
+    
+    
+    var svg = d3.select("#plot").append("svg").attr("width",400).attr("height",400)
+    
+    svg.call(tip)
+    
+    svg.selectAll("circle")
+    .data(newArray)
+    .enter()
+    .append("circle")
+    .attr("cx",function(d){return xScale(d.tractsD)})
+    .attr("cy",function(d){return yScale(d.msaD)})
+    .attr("r",4)
+    .attr("opacity",.2)
+    .attr("cursor","pointer")
+    .on("mouseover",function(d){
+        d3.select(this).attr("opacity",1)
+        tip.html(d.name)        
+        tip.show
+    })
+    .on("mouseout",function(d){
+        d3.select(this).attr("opacity",.2)
+        tip.hide
+    })
+    .on("click",function(d){
+        d3.selectAll("#plot circle").attr("fill","#000")
+        d3.select(this).attr("fill","red")
+        
+       drawAll(centroidsById[d.msaCode].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,d.msaCode)
+        
+    })
+    
+svg.append("g")
+     .attr("class", "y axis")
+     .attr("transform", "translate(30,30)")
+     .call(yAxis);    
+     
+svg.append("g")
+     .attr("class", "y axis")
+     .attr("transform", "translate(30,330)")
+     .call(xAxis)
 
+svg.selectAll("text")
+    
+}
 function sortableTable(data,centroidsById,tractTopoFeaturesById,msaTractDictionary,tractData,colors,svg,projection,msaData,msaTopoFeaturesById){
     var array = []
     for(var j in data){
@@ -107,9 +199,10 @@ function drawRow(rowData,key,centroidsById,tractTopoFeaturesById,msaTractDiction
     var row = $("<tr />").attr("class",rowData.geoid);
     row.on("click",function(){
         var projection = d3.geo.mercator().scale(20000).center(centroidsById[rowData.geoid].centroid).translate([width / 2, height / 2]);
-        
+    d3.selectAll("#map text").remove()
+    d3.selectAll("#map .uoc").remove()
        drawAll(centroidsById[rowData.geoid].centroid,20000,tractTopoFeaturesById,msaTractDictionary,tractData,colors,rowData.geoid)
-        drawVectorMap(tractTopoFeaturesById,[msaTopoFeaturesById[rowData.geoid]],tractData,msaData,rowData.geoid,projection,svg)
+       // drawVectorMap(tractTopoFeaturesById,[msaTopoFeaturesById[rowData.geoid]],tractData,msaData,rowData.geoid,projection,svg)
         drawCityLabel(centroidsById[rowData.geoid].centroid, rowData.name,projection)
    
 //    drawVectorMap(tractTopoFeaturesById,[msaTopoFeaturesById[chicago]],tractData,msaData,chicago,projection,svg)
@@ -140,6 +233,13 @@ function drawUniversityOfChicago(svg,projection){
     .text("Universty of Chicago")
     .attr("x",function(){return projection([coordinates[1],coordinates[0]])[0]+10})
     .attr("y",function(){return projection([coordinates[1],coordinates[0]])[1]+5})
+    .attr("class","uoc")
+    
+    var coordinates = [41.7027346781305,-87.96198062423504]
+    svg.append("text")
+    .text("Chicago Metropolitan Statistical Area")
+    .attr("x",function(){return projection([coordinates[1],coordinates[0]])[0]-140})
+    .attr("y",function(){return projection([coordinates[1],coordinates[0]])[1]-50})
     .attr("class","uoc")
     
 }
@@ -206,6 +306,9 @@ function drawDots(features,imageData,r,g,population,color,path,dotContext){
 }
 
 function drawAll(center,scale,tractTopoFeaturesById,msaTractDictionary,tractData,colors,cityCode){
+    d3.selectAll("#map text").remove()
+    d3.selectAll("#map path").remove()
+    d3.selectAll("#map .uoc").remove()
     var polyContext = setContexts()[0] 
     var dotContext = setContexts()[1]
     globals.center = center
