@@ -3,15 +3,16 @@ body{
     font-size:12px;
 }
 #text{
-    height:95%;
+    height:70%;
     width:400px;
     position:fixed;
     left:0px;
-    top:0px;
+    top:100px;
     overflow:auto;
     background-color:rgba(255,255,255,.5);
     z-index:999;
     padding:20px;
+    font-size:18px;
 }
 #header{
     font-size:30px;
@@ -26,7 +27,12 @@ body{
 #structure{
     
 }
-
+#cityLabel{
+    position:fixed;
+    left:450px;
+    padding:40px;
+    font-size:40px;
+}
 #viz{
     height:100%;
     width:100%;
@@ -38,6 +44,16 @@ body{
 #map{
     text-align:center;
 }
+#start{
+    border-bottom:1px solid black;
+    position:fixed;
+    top:0px;
+    width:400px;
+    margin-top:20px;
+    padding:10px;
+    margin-bottom:20px;
+}
+
 p:hover{
     background-color:yellow;
 }
@@ -67,7 +83,10 @@ table{
 th{
     padding:5px;
 }
+td:hover{background-color:yellow;}
 td{
     width:100px;
     padding-right:5px;
+    font-size:11px;
+    
 }
